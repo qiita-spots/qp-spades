@@ -10,10 +10,10 @@
 from setuptools import setup
 from glob import glob
 
-__version__ = "2021.03"
+__version__ = "2021.05"
 
 classes = """
-    Development Status :: 3 - Alpha
+    Development Status :: 5 - Beta
     License :: OSI Approved :: BSD License
     Topic :: Scientific/Engineering :: Bio-Informatics
     Topic :: Software Development :: Libraries :: Application Frameworks
