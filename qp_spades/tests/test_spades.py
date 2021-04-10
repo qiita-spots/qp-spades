@@ -18,7 +18,7 @@ from qiita_client.testing import PluginTestCase
 from qp_spades import plugin, spades
 
 
-class qiime2Tests(PluginTestCase):
+class SpadesTests(PluginTestCase):
     def setUp(self):
         # this will allow us to see the full errors
         self.maxDiff = None

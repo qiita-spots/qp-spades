@@ -98,7 +98,7 @@ def spades(qclient, job_id, parameters, out_dir):
         sample_name = prefix_to_name[run_prefix]
         out_fp = f'{out_dir}/{sample_name}.fasta'
         if parameters['merging'] == 'no merge':
-            cmd = (f'{spades_cmd} > {out_dir}/%s.spades.log 2>&1; '
+            cmd = (f'{spades_cmd} > {out_dir}/%s.spades.log 2>&1 && '
                    f'mv {out_dir}/{sample_name}/scaffolds.fasta {out_fp}' % (
                     fwd_fp, rev_fp, sample_name, sample_name))
         elif parameters['merging'].startswith('flash '):
@@ -120,9 +120,9 @@ def spades(qclient, job_id, parameters, out_dir):
             flash_fwd = f'{out_dir}/{sample_name}.notCombined_1.fastq'
             flash_rev = f'{out_dir}/{sample_name}.notCombined_2.fastq'
             flash_merge = f'{out_dir}/{sample_name}.extendedFrags.fastq'
-            cmd = (f'{flash_cmd} > {out_dir}/%s.flash.log 2>&1; '
+            cmd = (f'{flash_cmd} > {out_dir}/%s.flash.log 2>&1 && '
                    f'{spades_cmd} --merge %s > '
-                   f'{out_dir}/%s.spades.log 2>&1; '
+                   f'{out_dir}/%s.spades.log 2>&1 && '
                    f'mv {out_dir}/{sample_name}/scaffolds.fasta {out_fp}' % (
                     overlap, sample_name, fwd_fp, rev_fp, sample_name,
                     flash_fwd, flash_rev, sample_name, flash_merge,
