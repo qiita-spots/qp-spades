@@ -103,7 +103,7 @@ jobs:
           export QIITA_CONFIG_FP=`pwd`/qiita-dev/qiita_core/support_files/config_test_local.cfg
           pip install -U pip
           pip install .
-          configure_qp_spades --env-script "source /home/runner/.profile; conda activate qp-spades" --server-cert $QIITA_SERVER_CERT
+          configure_qp_spades --env-script 'source /home/runner/.profile; conda activate qp-spades; export ENVIRONMENT="source /home/runner/.profile; conda activate qp-spades"' --server-cert $QIITA_SERVER_CERT
 
       - name: Starting services
         shell: bash -l {0}

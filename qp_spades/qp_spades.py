@@ -6,11 +6,133 @@
 # The full license is in the file LICENSE, distributed with this software.
 # -----------------------------------------------------------------------------
 import pandas as pd
-
-from os.path import basename
+from os import environ
+from os.path import join, exists
+from glob import glob
+from subprocess import run, PIPE
 
 from qiita_client import ArtifactInfo
 from qiita_client.util import system_call
+
+# resources per job
+WALLTIME = '200:00:00'
+MAX_RUNNING = 8
+FINISH_WALLTIME = '10:00:00'
+FINISH_MEMORY = '4g'
+
+
+def spades_to_array(directory, output_dir, prefix_to_name, url,
+                    job_id, params):
+    environment = environ["ENVIRONMENT"]
+    ppn = params["threads"]
+    memory = params["memory"]
+
+    # 1. create file list
+    files = []
+    for prefix, sample_name in prefix_to_name.items():
+        fps = sorted(glob(join(directory, prefix + '*')))
+        # this should never occur but better to confirm
+        if len(fps) != 2:
+            mgs = f'There are multiple files that match "{prefix}"'
+            return False, None, mgs
+        files.append('\t'.join([fps[0], fps[1], sample_name]))
+
+    # 2. format main comand
+    # cmd = (f'{spades_cmd} > {out_dir}/%s.spades.log 2>&1 && '
+    #            f'mv {out_dir}/{sample_name}/scaffolds.fasta {out_fp}' % (
+    #             fwd_fp, rev_fp, sample_name, sample_name))
+    command = (
+        f'spades.py --{params["type"]} -t {ppn} -m {memory} '
+        f'-k {params["k-mers"]} -o $OUTDIR/$SNAME')
+    if params['merging'].startswith('flash '):
+        # get read lenght quickly; note that we are going to assume
+        # that (1) the forward and reverse are the same lenght and (2)
+        # all file pairs have the same lenght so only calculate once
+        fp = glob(join(directory, list(prefix_to_name)[0] + '*'))[0]
+        std_out, std_err, return_value = system_call(
+                f'gunzip -c {fp} | head -n 2')
+        if return_value != 0:
+            error_msg = (f"Error uncompressing: {fp}\n"
+                         f"Std out: {std_out}\nStd err: {std_err}\n")
+            return False, None, error_msg
+        read_length = len(std_out.split('\n')[1])
+        percentage = int(params['merging'][6:-1])/100
+        overlap = int(read_length * percentage)
+
+        command = (
+            # flash
+            f'flash --threads {ppn} --max-overlap={overlap} '
+            '--output-directory $OUTDIR '
+            '--output-prefix="$SNAME" ${FWD} ${REV} '
+            '--max-mismatch-density=0.1 > $OUTDIR/${SNAME}.flash.log 2>&1'
+            ' && '
+            # spades
+            f'{command} '
+            '--merge $OUTDIR/${SNAME}.extendedFrags.fastq '
+            '-1 $OUTDIR/${SNAME}.notCombined_1.fastq '
+            '-2 $OUTDIR/${SNAME}.notCombined_2.fastq')
+    else:
+        command = '%s -1 ${FWD} -2 ${REV}' % command
+
+    # 3. create qsub for array submission
+    num_samples = len(prefix_to_name)
+    mqsub = [
+        '#!/bin/bash',
+        '#PBS -M qiita.help@gmail.com',
+        f'#PBS -N {job_id}',
+        f'#PBS -l nodes=1:ppn={ppn}',
+        f'#PBS -l walltime={WALLTIME}',
+        f'#PBS -l mem={memory}g',
+        f'#PBS -o {output_dir}/{job_id}' + '_${PBS_ARRAYID}.log',
+        f'#PBS -e {output_dir}/{job_id}' + '_${PBS_ARRAYID}.err',
+        f'#PBS -t 1-{num_samples}%{MAX_RUNNING}',
+        '#PBS -l epilogue=/home/qiita/qiita-epilogue.sh',
+        f'cd {output_dir}',
+        f'{environment}',
+        f'OUTDIR={output_dir}/',
+        'date',
+        'hostname',
+        'echo ${PBS_JOBID} ${PBS_ARRAYID}',
+        'offset=${PBS_ARRAYID}',
+        'args=$(head -n $offset ${OUTDIR}/files_to_process.txt| tail -n 1)',
+        "FWD=$(echo -e $args | awk '{ print $1 }')",
+        "REV=$(echo -e $args | awk '{ print $2 }')",
+        "SNAME=$(echo -e $args | awk '{ print $3 }')",
+        f'{command}',
+        'date']
+
+    # 4. create qsub to finish job in Qiita
+    fqsub = [
+        '#!/bin/bash',
+        '#PBS -M qiita.help@gmail.com',
+        f'#PBS -N merge-{job_id}',
+        '#PBS -l nodes=1:ppn=1',
+        f'#PBS -l walltime={FINISH_WALLTIME}',
+        f'#PBS -l mem={FINISH_MEMORY}',
+        f'#PBS -o {output_dir}/finish-{job_id}.log',
+        f'#PBS -e {output_dir}/finish-{job_id}.err',
+        '#PBS -l epilogue=/home/qiita/qiita-epilogue.sh',
+        f'cd {output_dir}',
+        f'{environment}',
+        'date',
+        'hostname',
+        'echo $PBS_JOBID',
+        f'finish_woltka {url} {job_id} {output_dir}\n'
+        "date"]
+
+    # write files
+    with open(join(output_dir, 'files_to_process.txt'), 'w') as f:
+        f.write('\n'.join(files))
+    main_qsub_fp = join(output_dir, f'{job_id}.qsub')
+    with open(main_qsub_fp, 'w') as job:
+        job.write('\n'.join(mqsub))
+        job.write('\n')
+    finish_qsub_fp = join(output_dir, f'{job_id}.finish.qsub')
+    with open(finish_qsub_fp, 'w') as job:
+        job.write('\n'.join(fqsub))
+        job.write('\n')
+
+    return main_qsub_fp, finish_qsub_fp
 
 
 def spades(qclient, job_id, parameters, out_dir):
@@ -32,117 +154,35 @@ def spades(qclient, job_id, parameters, out_dir):
     bool, list, str
         The results of the job
     """
-    # Step 1 get the rest of the information need to run Bowtie2
-    qclient.update_job_step(job_id, "Step 1 of 4: Collecting information")
+    msg = "Step 3 of 4: Checking resulting files"
+    qclient.update_job_step(job_id, msg)
+
     artifact_id = parameters['input']
-    del parameters['input']
-
-    # Get the artifact filepath information
     artifact_info = qclient.get("/qiita_db/artifacts/%s/" % artifact_id)
-    fwd_seqs = sorted(artifact_info['files']['raw_forward_seqs'])
-    if 'raw_reverse_seqs' in artifact_info['files']:
-        rev_seqs = sorted(artifact_info['files']['raw_reverse_seqs'])
-    else:
-        return False, None, 'This plugin expects forward and reverse reads.'
-
-    if len(fwd_seqs) != len(rev_seqs):
-        mgs = 'There is a different number of forward and reverse read files.'
-        return False, None, mgs
-
     # Get the artifact metadata
     prep_info = qclient.get('/qiita_db/prep_template/%s/'
                             % artifact_info['prep_information'][0])
     df = pd.read_csv(prep_info['prep-file'], sep='\t', dtype='str',
                      na_values=[], keep_default_na=True)
-    if 'run_prefix' not in df.columns:
-        return False, None, 'Missing run_prefix column in your preparation'
-    prefix_to_name = df.set_index('run_prefix')['sample_name'].to_dict()
+    snames = df.sample_name.values
 
-    # Step 2 generating command
-    qclient.update_job_step(job_id, "Step 2 of 4: Generating commands")
-
-    flash_cmd = (f'flash --threads {parameters["threads"]} --max-overlap=%d '
-                 f'--max-mismatch-density=0.1 --output-directory {out_dir} '
-                 '--output-prefix="%s" %s %s')
-    spades_cmd = (
-        f'spades.py --{parameters["type"]} -t {parameters["threads"]} '
-        f'-m {parameters["memory"]} -k {parameters["k-mers"]} -1 %s -2 %s '
-        f'-o {out_dir}/%s')
-
-    commands = []
+    missing = []
     outfiles = []
-    overlap = None
-
-    for fwd_fp, rev_fp in zip(fwd_seqs, rev_seqs):
-        fwd_fn = basename(fwd_fp)
-
-        run_prefix = None
-        for rp in prefix_to_name:
-            if fwd_fn.startswith(rp):
-                if run_prefix is None:
-                    run_prefix = rp
-                else:
-                    msg = ('Multiple run prefixes match this fwd '
-                           'file: {fwd_fn}')
-                    return False, None, msg
-
-        rev_fn = basename(rev_fp)
-        # if we have reverse reads, make sure the matching pair also
-        # matches the run prefix:
-        if not rev_fn.startswith(run_prefix):
-            msg = ('Reverse read does not match this run prefix.\nRun prefix: '
-                   '%s\nForward read: %s\nReverse read: %s\n' % (
-                    run_prefix, fwd_fn, rev_fn))
-            return False, None, msg
-
-        sample_name = prefix_to_name[run_prefix]
-        out_fp = f'{out_dir}/{sample_name}.fasta'
-        if parameters['merging'] == 'no merge':
-            cmd = (f'{spades_cmd} > {out_dir}/%s.spades.log 2>&1 && '
-                   f'mv {out_dir}/{sample_name}/scaffolds.fasta {out_fp}' % (
-                    fwd_fp, rev_fp, sample_name, sample_name))
-        elif parameters['merging'].startswith('flash '):
-            if overlap is None:
-                # get read lenght quickly; note that we are going to assume
-                # that (1) the forward and reverse are the same lenght and (2)
-                # all file pairs have the same lenght so only calculate once
-                std_out, std_err, return_value = system_call(
-                    f'gunzip -c {fwd_fp} | head -n 2')
-                if return_value != 0:
-                    error_msg = (f"Error uncompressing: {fwd_fp}\n"
-                                 f"Std out: {std_out}\nStd err: {std_err}\n")
-                    return False, None, error_msg
-
-                read_length = len(std_out.split('\n')[1])
-                percentage = int(parameters['merging'][6:-1])/100
-                overlap = int(read_length * percentage)
-
-            flash_fwd = f'{out_dir}/{sample_name}.notCombined_1.fastq'
-            flash_rev = f'{out_dir}/{sample_name}.notCombined_2.fastq'
-            flash_merge = f'{out_dir}/{sample_name}.extendedFrags.fastq'
-            cmd = (f'{flash_cmd} > {out_dir}/%s.flash.log 2>&1 && '
-                   f'{spades_cmd} --merge %s > '
-                   f'{out_dir}/%s.spades.log 2>&1 && '
-                   f'mv {out_dir}/{sample_name}/scaffolds.fasta {out_fp}' % (
-                    overlap, sample_name, fwd_fp, rev_fp, sample_name,
-                    flash_fwd, flash_rev, sample_name, flash_merge,
-                    sample_name))
+    for sname in snames:
+        scaffold = join(out_dir, sname, 'scaffolds.fasta')
+        if exists(scaffold):
+            new_scaffold = join(out_dir, sname, f'{sname}.fasta')
+            run(['mv', scaffold, new_scaffold], stdout=PIPE)
+            outfiles.append((new_scaffold, 'preprocessed_fasta'))
         else:
-            return False, None, 'Not a valid merging scheme'
+            missing.append(sname)
 
-        commands.append(cmd)
-        outfiles.append((out_fp, 'preprocessed_fasta'))
-
-    len_commands = len(commands)
-    msg = f"Step 3 of 4: Executing commands (%d/{len_commands})"
-    for i, cmd in enumerate(commands):
-        qclient.update_job_step(job_id, msg % (i+1))
-        std_out, std_err, return_value = system_call(cmd)
-        if return_value != 0:
-            error_msg = ("Error running spades; for more information send an "
-                         "email to qiita.help@gmail.com and add this job_id: "
-                         f"{job_id} \n")
-            return False, None, error_msg
+    if missing:
+        error_msg = (
+            'There was no scaffolds.fasta for samples: %s. Contact: '
+            'qiita.help@gmail.com and this job id: %s' % (
+                ', '.join(missing), job_id))
+        return False, None, error_msg
 
     # Step 4 generating artifacts
     msg = "Step 4 of 4: Generating new artifact"

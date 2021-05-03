@@ -14,8 +14,13 @@ THREADS = "16"
 MEMORY = "200"
 KMERS = "21,33,55,77,99,127"
 
+plugin_details = {'name': 'qp-spades',
+                  'version': '3.15.2',
+                  'description': 'spades pipeline'}
+
+
 # Initialize the plugin
-plugin = QiitaPlugin('qp-spades', '2021.05', 'spades pipeline')
+plugin = QiitaPlugin(**plugin_details)
 
 # Define the command
 req_params = {'input': ('artifact', ['per_sample_FASTQ'])}
@@ -43,7 +48,7 @@ default_params = {
         'memory': MEMORY, 'k-mers': KMERS}}
 
 spades_cmd = QiitaCommand(
-    "spades v3.15.2", "Isolate and Metagenomic processing via spades", spades,
+    "spades", "Isolate and Metagenomic processing via spades", spades,
     req_params, opt_params, outputs, default_params)
 
 plugin.register_command(spades_cmd)
