@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 
 from unittest import main
-from os import remove
+from os import remove, environ
 from os.path import exists, isdir, join, realpath, dirname
 from shutil import rmtree, copyfile
 from tempfile import mkdtemp
@@ -34,6 +34,8 @@ class SpadesTests(PluginTestCase):
             'parameters': None}
 
         self.basedir = dirname(realpath(__file__))
+
+        self.environment = environ["ENVIRONMENT"]
 
     def tearDown(self):
         for fp in self._clean_up_files:
@@ -109,6 +111,7 @@ class SpadesTests(PluginTestCase):
         with open(finish_qsub_fp) as fp:
             obs_finish_qsub_fp = fp.readlines()
         params['out_dir'] = out_dir
+        params['environment'] = self.environment
         self.assertEqual(''.join(obs_main_qsub_fp), EXP_MAIN.format(**params))
         self.assertEqual(
             ''.join(obs_finish_qsub_fp), EXP_FINISH.format(**params))
@@ -129,6 +132,7 @@ class SpadesTests(PluginTestCase):
         with open(finish_qsub_fp) as fp:
             obs_finish_qsub_fp = fp.readlines()
         params['out_dir'] = out_dir
+        params['environment'] = self.environment
         self.assertEqual(
             ''.join(obs_main_qsub_fp), EXP_MAIN_FLASH.format(**params))
         self.assertEqual(
@@ -146,7 +150,7 @@ EXP_MAIN = """#!/bin/bash
 #PBS -t 1-2%8
 #PBS -l epilogue=/home/qiita/qiita-epilogue.sh
 cd {out_dir}
-source ~/.bash_profile; source activate qp-spades
+{environment}
 OUTDIR={out_dir}/
 date
 hostname
@@ -171,7 +175,7 @@ EXP_FINISH = """#!/bin/bash
 #PBS -e {out_dir}/finish-qiita_job_id.err
 #PBS -l epilogue=/home/qiita/qiita-epilogue.sh
 cd {out_dir}
-source ~/.bash_profile; source activate qp-spades
+{environment}
 date
 hostname
 echo $PBS_JOBID
@@ -190,7 +194,7 @@ EXP_MAIN_FLASH = """#!/bin/bash
 #PBS -t 1-2%8
 #PBS -l epilogue=/home/qiita/qiita-epilogue.sh
 cd {out_dir}
-source ~/.bash_profile; source activate qp-spades
+{environment}
 OUTDIR={out_dir}/
 date
 hostname
