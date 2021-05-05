@@ -110,11 +110,16 @@ class SpadesTests(PluginTestCase):
             obs_main_qsub_fp = fp.readlines()
         with open(finish_qsub_fp) as fp:
             obs_finish_qsub_fp = fp.readlines()
+        file_list_fp = join(dirname(finish_qsub_fp), 'files_to_process.txt')
+        with open(file_list_fp) as fp:
+            obs_file_list_fp = fp.readlines()
         params['out_dir'] = out_dir
         params['environment'] = self.environment
         self.assertEqual(''.join(obs_main_qsub_fp), EXP_MAIN.format(**params))
         self.assertEqual(
             ''.join(obs_finish_qsub_fp), EXP_FINISH.format(**params))
+        self.assertEqual(''.join(obs_file_list_fp),
+                         EXP_FILE_LIST.format(directory=directory))
 
         # testing isolate/merge
         # note that we don't need to recreate all the above variables and we
@@ -182,6 +187,12 @@ echo $PBS_JOBID
 finish_qp_spades http://mylink qiita_job_id {out_dir}
 date
 """
+
+EXP_FILE_LIST = """{directory}/S22205_S104_L001_R1_001.fastq.gz\t\
+{directory}/S22205_S104_L001_R2_001.fastq.gz\tS22205_S104
+{directory}/S22282_S102_L001_R1_001.fastq.gz\t\
+{directory}/S22282_S102_L001_R2_001.fastq.gz\tS22282_S102"""
+
 
 EXP_MAIN_FLASH = """#!/bin/bash
 #PBS -M qiita.help@gmail.com

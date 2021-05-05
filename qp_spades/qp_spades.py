@@ -35,7 +35,7 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         if len(fps) != 2:
             mgs = f'There are multiple files that match "{prefix}"'
             return False, None, mgs
-        files.append('\t'.join([fps[0], fps[1], sample_name]))
+        files.append('\t'.join([fps[0], fps[1], prefix]))
 
     # 2. format main comand
     # cmd = (f'{spades_cmd} > {out_dir}/%s.spades.log 2>&1 && '
