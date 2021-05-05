@@ -52,7 +52,7 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         # all file pairs have the same length so only calculate once
         fp = glob(join(directory, list(prefix_to_name)[0] + '*'))[0]
         std_out, std_err, return_value = system_call(
-                f'gzcat {fp} | head -n 2')
+                f'zcat -c {fp} | head -n 2')
         if return_value != 0:
             error_msg = (f"Error uncompressing: {fp}\n"
                          f"Std out: {std_out}\nStd err: {std_err}\n")
