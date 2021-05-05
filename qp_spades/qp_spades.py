@@ -33,21 +33,18 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         fps = sorted(glob(join(directory, prefix + '*')))
         # this should never occur but better to confirm
         if len(fps) != 2:
-            mgs = f'There are multiple files that match "{prefix}"'
+            mgs = f'Expected two files to match "{prefix}"'
             return False, None, mgs
         files.append('\t'.join([fps[0], fps[1], prefix]))
 
     # 2. format main comand
-    # cmd = (f'{spades_cmd} > {out_dir}/%s.spades.log 2>&1 && '
-    #            f'mv {out_dir}/{sample_name}/scaffolds.fasta {out_fp}' % (
-    #             fwd_fp, rev_fp, sample_name, sample_name))
     command = (
         f'spades.py --{params["type"]} -t {ppn} -m {memory} '
         f'-k {params["k-mers"]} -o $OUTDIR/$SNAME')
     if params['merging'].startswith('flash '):
-        # get read lenght quickly; note that we are going to assume
-        # that (1) the forward and reverse are the same lenght and (2)
-        # all file pairs have the same lenght so only calculate once
+        # get read length quickly; note that we are going to assume
+        # that (1) the forward and reverse are the same length and (2)
+        # all file pairs have the same length so only calculate once
         fp = glob(join(directory, list(prefix_to_name)[0] + '*'))[0]
         std_out, std_err, return_value = system_call(
                 f'gunzip -c {fp} | head -n 2')
