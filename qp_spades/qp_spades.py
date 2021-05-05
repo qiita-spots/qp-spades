@@ -117,7 +117,7 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         'date',
         'hostname',
         'echo $PBS_JOBID',
-        f'finish_woltka {url} {job_id} {output_dir}\n'
+        f'finish_qp_spades {url} {job_id} {output_dir}\n'
         "date"]
 
     # write files

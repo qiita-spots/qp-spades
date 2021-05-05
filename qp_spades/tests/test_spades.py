@@ -179,7 +179,7 @@ cd {out_dir}
 date
 hostname
 echo $PBS_JOBID
-finish_woltka http://mylink qiita_job_id {out_dir}
+finish_qp_spades http://mylink qiita_job_id {out_dir}
 date
 """
 
