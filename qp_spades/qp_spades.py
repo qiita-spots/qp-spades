@@ -180,7 +180,7 @@ def spades(qclient, job_id, parameters, out_dir):
     if missing:
         error_msg = (
             'There was no scaffolds.fasta for samples: %s. Contact: '
-            'qiita.help@gmail.com and this job id: %s' % (
+            'qiita.help@gmail.com and add this job id: %s' % (
                 ', '.join(missing), job_id))
         return False, None, error_msg
 
