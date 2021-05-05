@@ -28,13 +28,18 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
     memory = params["memory"]
 
     # 1. create file list
+    num_samples = len(prefix_to_name)
+    if num_samples > 1024:
+        raise ValueError('This preparation has more than 1024 samples, '
+                         'which is the limit; please split in multiple.')
+
     files = []
     for prefix, sample_name in prefix_to_name.items():
         fps = sorted(glob(join(directory, prefix + '*')))
         # this should never occur but better to confirm
         if len(fps) != 2:
-            mgs = f'Expected two files to match "{prefix}"'
-            return False, None, mgs
+            error_msg = f'Expected two files to match "{prefix}"'
+            raise ValueError(error_msg)
         files.append('\t'.join([fps[0], fps[1], prefix]))
 
     # 2. format main comand
@@ -47,11 +52,11 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         # all file pairs have the same length so only calculate once
         fp = glob(join(directory, list(prefix_to_name)[0] + '*'))[0]
         std_out, std_err, return_value = system_call(
-                f'gunzip -c {fp} | head -n 2')
+                f'gzcat {fp} | head -n 2')
         if return_value != 0:
             error_msg = (f"Error uncompressing: {fp}\n"
                          f"Std out: {std_out}\nStd err: {std_err}\n")
-            return False, None, error_msg
+            raise ValueError(error_msg)
         read_length = len(std_out.split('\n')[1])
         percentage = int(params['merging'][6:-1])/100
         overlap = int(read_length * percentage)
@@ -72,7 +77,6 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         command = '%s -1 ${FWD} -2 ${REV}' % command
 
     # 3. create qsub for array submission
-    num_samples = len(prefix_to_name)
     mqsub = [
         '#!/bin/bash',
         '#PBS -M qiita.help@gmail.com',

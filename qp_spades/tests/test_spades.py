@@ -99,8 +99,6 @@ class SpadesTests(PluginTestCase):
         prep_info = self.qclient.get(f'/qiita_db/prep_template/{self.pid}/')
         df = pd.read_csv(prep_info['prep-file'], sep='\t', dtype='str',
                          na_values=[], keep_default_na=True)
-        if 'run_prefix' not in df.columns:
-            return False, None, 'Missing run_prefix column in your preparation'
         prefix_to_name = df.set_index('run_prefix')['sample_name'].to_dict()
 
         main_qsub_fp, finish_qsub_fp = spades_to_array(
@@ -142,6 +140,21 @@ class SpadesTests(PluginTestCase):
             ''.join(obs_main_qsub_fp), EXP_MAIN_FLASH.format(**params))
         self.assertEqual(
             ''.join(obs_finish_qsub_fp), EXP_FINISH.format(**params))
+
+        # testing errors
+        prefix_to_name = {'S222': '1.SKB8.640193', 'S22': '1.SKD8.640184'}
+        with self.assertRaisesRegex(
+                ValueError, 'Expected two files to match "S222"'):
+            spades_to_array(
+                directory, out_dir, prefix_to_name, 'http://mylink',
+                'qiita_job_id', params)
+
+        prefix_to_name = list(range(1300))
+        with self.assertRaisesRegex(
+                ValueError, 'This preparation has more than 1024 samples'):
+            spades_to_array(
+                directory, out_dir, prefix_to_name, 'http://mylink',
+                'qiita_job_id', params)
 
 
 EXP_MAIN = """#!/bin/bash
