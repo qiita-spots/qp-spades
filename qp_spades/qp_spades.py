@@ -165,18 +165,18 @@ def spades(qclient, job_id, parameters, out_dir):
                             % artifact_info['prep_information'][0])
     df = pd.read_csv(prep_info['prep-file'], sep='\t', dtype='str',
                      na_values=[], keep_default_na=True)
-    snames = df.sample_name.values
+    prep_info = df.set_index('run_prefix')['sample_name'].to_dict()
 
     missing = []
     outfiles = []
-    for sname in snames:
-        scaffold = join(out_dir, sname, 'scaffolds.fasta')
+    for run_prefix, sname in prep_info.items():
+        scaffold = join(out_dir, run_prefix, 'scaffolds.fasta')
         if exists(scaffold):
-            new_scaffold = join(out_dir, sname, f'{sname}.fasta')
+            new_scaffold = join(out_dir, run_prefix, f'{run_prefix}.fasta')
             run(['mv', scaffold, new_scaffold], stdout=PIPE)
             outfiles.append((new_scaffold, 'preprocessed_fasta'))
         else:
-            missing.append(sname)
+            missing.append(f'{sname} [{run_prefix}]')
 
     if missing:
         error_msg = (
