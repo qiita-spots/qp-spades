@@ -7,16 +7,17 @@
 # -----------------------------------------------------------------------------
 
 from unittest import main
-from os import remove, environ
+from os import remove, environ, mkdir
 from os.path import exists, isdir, join, realpath, dirname
 from shutil import rmtree, copyfile
+from pathlib import Path
 from tempfile import mkdtemp
 from json import dumps
 import pandas as pd
 from qiita_client.testing import PluginTestCase
 
-from qp_spades import plugin
-from qp_spades.qp_spades import spades_to_array
+from qp_spades import plugin, plugin_details
+from qp_spades.qp_spades import spades_to_array, spades
 
 
 class SpadesTests(PluginTestCase):
@@ -155,6 +156,43 @@ class SpadesTests(PluginTestCase):
             spades_to_array(
                 directory, out_dir, prefix_to_name, 'http://mylink',
                 'qiita_job_id', params)
+
+    def test_spades(self):
+        self._generate_testing_files()
+
+        # testing error
+        params = {
+            'type': 'meta', 'merging': 'flash 65%', 'input': self.aid,
+            'threads': 5, 'memory': 200, 'k-mers': '21,33,55,77,99,127'}
+        self.data['command'] = dumps(
+            [plugin_details['name'], plugin_details['version'], 'spades'])
+        self.data['parameters'] = dumps(params)
+        jid = self.qclient.post(
+            '/apitest/processing_job/', data=self.data)['job']
+
+        out_dir = mkdtemp()
+        self._clean_up_files.append(out_dir)
+        success, artifact, msg = spades(self.qclient, jid, params, out_dir)
+        self.assertIsNone(artifact)
+        self.assertFalse(success)
+        self.assertEqual(msg, f'There was no scaffolds.fasta for samples: '
+                         '1.SKB8.640193 [S22205_S104], 1.SKD8.640184 '
+                         '[S22282_S102]. Contact: qiita.help@gmail.com and '
+                         f'add this job id: {jid}')
+
+        # testing success
+        mkdir(f'{out_dir}/S22205_S104')
+        mkdir(f'{out_dir}/S22282_S102')
+        Path(f'{out_dir}/S22205_S104/scaffolds.fasta').touch()
+        Path(f'{out_dir}/S22282_S102/scaffolds.fasta').touch()
+        success, ainfo, msg = spades(self.qclient, jid, params, out_dir)
+        self.assertTrue(success)
+        self.assertEqual(1, len(ainfo))
+        self.assertEqual(ainfo[0].files,
+                         [(f'{out_dir}/S22205_S104/S22205_S104.fasta',
+                           'preprocessed_fasta'),
+                          (f'{out_dir}/S22282_S102/S22282_S102.fasta',
+                           'preprocessed_fasta')])
 
 
 EXP_MAIN = """#!/bin/bash
