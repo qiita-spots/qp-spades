@@ -248,7 +248,6 @@ EXP_FILE_LIST = """{directory}/S22205_S104_L001_R1_001.fastq.gz\t\
 
 
 EXP_MAIN_FLASH = """#!/bin/bash
-
 #SBATCH -p qiita
 #SBATCH --mail-user qiita.help@gmail.com
 #SBATCH --job-name qiita_job_id
