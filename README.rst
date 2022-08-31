@@ -23,7 +23,7 @@ Qiita Client can perform secure connections against the Qiita server:
 
     $ export QIITA_SERVER_CERT=<QIITA_INSTALL_PATH>/qiita_core/support_files/server.crt
 
-.. |Build Status| image:: https://travis-ci.org/qiita-spots/qp-spades.png?branch=master
-   :target: https://travis-ci.org/qiita-spots/qp-spades
+.. |Build Status| image:: https://github.com/qiita-spots/qp-spades/actions/workflows/qiita-plugin-ci.yml/badge.svg
+   :target: https://github.com/qiita-spots/qp-spades/actions/workflows/qiita-plugin-ci.yml
 .. |Coverage Status| image:: https://coveralls.io/repos/qiita-spots/qp-spades/badge.png?branch=master
    :target: https://coveralls.io/r/qiita-spots/qp-spades

@@ -76,25 +76,26 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
     else:
         command = '%s -1 ${FWD} -2 ${REV}' % command
 
-    # 3. create qsub for array submission
-    mqsub = [
+    # 3. create command for array submission
+    marray = [
         '#!/bin/bash',
-        '#PBS -M qiita.help@gmail.com',
-        f'#PBS -N {job_id}',
-        f'#PBS -l nodes=1:ppn={ppn}',
-        f'#PBS -l walltime={WALLTIME}',
-        f'#PBS -l mem={memory}g',
-        f'#PBS -o {output_dir}/{job_id}' + '_${PBS_ARRAYID}.log',
-        f'#PBS -e {output_dir}/{job_id}' + '_${PBS_ARRAYID}.err',
-        f'#PBS -t 1-{num_samples}%{MAX_RUNNING}',
-        '#PBS -l epilogue=/home/qiita/qiita-epilogue.sh',
+        '#SBATCH -p qiita',
+        '#SBATCH --mail-user qiita.help@gmail.com',
+        f'#SBATCH --job-name {job_id}',
+        '#SBATCH -N 1',
+        f'#SBATCH -n {ppn}',
+        f'#SBATCH --time {WALLTIME}',
+        f'#SBATCH --mem {memory}g',
+        f'#SBATCH --output {output_dir}/{job_id}_%a.log',
+        f'#SBATCH --error {output_dir}/{job_id}_%a.err',
+        f'#SBATCH --array 1-{num_samples}%{MAX_RUNNING}',
         f'cd {output_dir}',
         f'{environment}',
         f'OUTDIR={output_dir}/',
         'date',
         'hostname',
-        'echo ${PBS_JOBID} ${PBS_ARRAYID}',
-        'offset=${PBS_ARRAYID}',
+        'echo ${SLURM_JOBID} ${SLURM_ARRAY_TASK_ID}',
+        'offset=${SLURM_ARRAY_TASK_ID}',
         'args=$(head -n $offset ${OUTDIR}/files_to_process.txt| tail -n 1)',
         "FWD=$(echo -e $args | awk '{ print $1 }')",
         "REV=$(echo -e $args | awk '{ print $2 }')",
@@ -102,38 +103,39 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         f'{command}',
         'date']
 
-    # 4. create qsub to finish job in Qiita
-    fqsub = [
+    # 4. create command to finish job in Qiita
+    fcmd = [
         '#!/bin/bash',
-        '#PBS -M qiita.help@gmail.com',
-        f'#PBS -N merge-{job_id}',
-        '#PBS -l nodes=1:ppn=1',
-        f'#PBS -l walltime={FINISH_WALLTIME}',
-        f'#PBS -l mem={FINISH_MEMORY}',
-        f'#PBS -o {output_dir}/finish-{job_id}.log',
-        f'#PBS -e {output_dir}/finish-{job_id}.err',
-        '#PBS -l epilogue=/home/qiita/qiita-epilogue.sh',
+        '#SBATCH -p qiita',
+        '#SBATCH --mail-user qiita.help@gmail.com',
+        f'#SBATCH --job-name merge-{job_id}',
+        '#SBATCH -N 1',
+        '#SBATCH -n 1',
+        f'#SBATCH --time {FINISH_WALLTIME}',
+        f'#SBATCH --mem {FINISH_MEMORY}',
+        f'#SBATCH --output {output_dir}/finish-{job_id}.log',
+        f'#SBATCH --error {output_dir}/finish-{job_id}.err',
         f'cd {output_dir}',
         f'{environment}',
         'date',
         'hostname',
-        'echo $PBS_JOBID',
+        'echo $SLURM_JOBID',
         f'finish_qp_spades {url} {job_id} {output_dir}\n'
         "date"]
 
     # write files
     with open(join(output_dir, 'files_to_process.txt'), 'w') as f:
         f.write('\n'.join(files))
-    main_qsub_fp = join(output_dir, f'{job_id}.qsub')
-    with open(main_qsub_fp, 'w') as job:
-        job.write('\n'.join(mqsub))
+    main_fp = join(output_dir, f'{job_id}.slurm')
+    with open(main_fp, 'w') as job:
+        job.write('\n'.join(marray))
         job.write('\n')
-    finish_qsub_fp = join(output_dir, f'{job_id}.finish.qsub')
-    with open(finish_qsub_fp, 'w') as job:
-        job.write('\n'.join(fqsub))
+    finish_fp = join(output_dir, f'{job_id}.finish.slurm')
+    with open(finish_fp, 'w') as job:
+        job.write('\n'.join(fcmd))
         job.write('\n')
 
-    return main_qsub_fp, finish_qsub_fp
+    return main_fp, finish_fp
 
 
 def spades(qclient, job_id, parameters, out_dir):

@@ -83,14 +83,14 @@ def execute(url, job_id, output_dir):
         prefix_to_name = df.set_index('run_prefix')['sample_name'].to_dict()
 
         # Getting all the files from the database
-        main_qsub_fp, finish_qsub_fp = spades_to_array(
+        main_fp, finish_fp = spades_to_array(
             directory, output_dir, prefix_to_name, url, job_id, parameters)
 
         # Submitting jobs and returning id
-        main_job = run(['qsub', main_qsub_fp], stdout=PIPE)
+        main_job = run(['sbatch', main_fp], stdout=PIPE)
         main_job_id = main_job.stdout.decode('utf8')
-        finish_job = run(['qsub', f'-W depend=afteranyarray:{main_job_id}',
-                          finish_qsub_fp], stdout=PIPE)
+        finish_job = run(['sbatch', '-d', f'afterany:{main_job_id}',
+                          finish_fp], stdout=PIPE)
         finish_job_id = finish_job.stdout.decode('utf8')
         print(f'{main_job_id}, {finish_job_id}')
 

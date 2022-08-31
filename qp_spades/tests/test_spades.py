@@ -102,21 +102,21 @@ class SpadesTests(PluginTestCase):
                          na_values=[], keep_default_na=True)
         prefix_to_name = df.set_index('run_prefix')['sample_name'].to_dict()
 
-        main_qsub_fp, finish_qsub_fp = spades_to_array(
+        main_fp, finish_fp = spades_to_array(
             directory, out_dir, prefix_to_name, 'http://mylink',
             'qiita_job_id', params)
-        with open(main_qsub_fp) as fp:
-            obs_main_qsub_fp = fp.readlines()
-        with open(finish_qsub_fp) as fp:
-            obs_finish_qsub_fp = fp.readlines()
-        file_list_fp = join(dirname(finish_qsub_fp), 'files_to_process.txt')
+        with open(main_fp) as fp:
+            obs_main_fp = fp.readlines()
+        with open(finish_fp) as fp:
+            obs_finish_fp = fp.readlines()
+        file_list_fp = join(dirname(finish_fp), 'files_to_process.txt')
         with open(file_list_fp) as fp:
             obs_file_list_fp = fp.readlines()
         params['out_dir'] = out_dir
         params['environment'] = self.environment
-        self.assertEqual(''.join(obs_main_qsub_fp), EXP_MAIN.format(**params))
+        self.assertEqual(''.join(obs_main_fp), EXP_MAIN.format(**params))
         self.assertEqual(
-            ''.join(obs_finish_qsub_fp), EXP_FINISH.format(**params))
+            ''.join(obs_finish_fp), EXP_FINISH.format(**params))
         self.assertEqual(''.join(obs_file_list_fp),
                          EXP_FILE_LIST.format(directory=directory))
 
@@ -128,19 +128,19 @@ class SpadesTests(PluginTestCase):
             'threads': 5, 'memory': 200, 'k-mers': '21,33,55,77,99,127'}
         prefix_to_name = df.set_index('run_prefix')['sample_name'].to_dict()
 
-        main_qsub_fp, finish_qsub_fp = spades_to_array(
+        main_fp, finish_fp = spades_to_array(
             directory, out_dir, prefix_to_name, 'http://mylink',
             'qiita_job_id', params)
-        with open(main_qsub_fp) as fp:
-            obs_main_qsub_fp = fp.readlines()
-        with open(finish_qsub_fp) as fp:
-            obs_finish_qsub_fp = fp.readlines()
+        with open(main_fp) as fp:
+            obs_main_fp = fp.readlines()
+        with open(finish_fp) as fp:
+            obs_finish_fp = fp.readlines()
         params['out_dir'] = out_dir
         params['environment'] = self.environment
         self.assertEqual(
-            ''.join(obs_main_qsub_fp), EXP_MAIN_FLASH.format(**params))
+            ''.join(obs_main_fp), EXP_MAIN_FLASH.format(**params))
         self.assertEqual(
-            ''.join(obs_finish_qsub_fp), EXP_FINISH.format(**params))
+            ''.join(obs_finish_fp), EXP_FINISH.format(**params))
 
         # testing errors
         prefix_to_name = {'S222': '1.SKB8.640193', 'S22': '1.SKD8.640184'}
@@ -196,22 +196,23 @@ class SpadesTests(PluginTestCase):
 
 
 EXP_MAIN = """#!/bin/bash
-#PBS -M qiita.help@gmail.com
-#PBS -N qiita_job_id
-#PBS -l nodes=1:ppn=5
-#PBS -l walltime=200:00:00
-#PBS -l mem=200g
-#PBS -o {out_dir}/qiita_job_id_${{PBS_ARRAYID}}.log
-#PBS -e {out_dir}/qiita_job_id_${{PBS_ARRAYID}}.err
-#PBS -t 1-2%8
-#PBS -l epilogue=/home/qiita/qiita-epilogue.sh
+#SBATCH -p qiita
+#SBATCH --mail-user qiita.help@gmail.com
+#SBATCH --job-name qiita_job_id
+#SBATCH -N 1
+#SBATCH -n 5
+#SBATCH --time 200:00:00
+#SBATCH --mem 200g
+#SBATCH --output {out_dir}/qiita_job_id_%a.log
+#SBATCH --error {out_dir}/qiita_job_id_%a.err
+#SBATCH --array 1-2%8
 cd {out_dir}
 {environment}
 OUTDIR={out_dir}/
 date
 hostname
-echo ${{PBS_JOBID}} ${{PBS_ARRAYID}}
-offset=${{PBS_ARRAYID}}
+echo ${{SLURM_JOBID}} ${{SLURM_ARRAY_TASK_ID}}
+offset=${{SLURM_ARRAY_TASK_ID}}
 args=$(head -n $offset ${{OUTDIR}}/files_to_process.txt| tail -n 1)
 FWD=$(echo -e $args | awk '{{ print $1 }}')
 REV=$(echo -e $args | awk '{{ print $2 }}')
@@ -222,19 +223,20 @@ date
 """
 
 EXP_FINISH = """#!/bin/bash
-#PBS -M qiita.help@gmail.com
-#PBS -N merge-qiita_job_id
-#PBS -l nodes=1:ppn=1
-#PBS -l walltime=10:00:00
-#PBS -l mem=4g
-#PBS -o {out_dir}/finish-qiita_job_id.log
-#PBS -e {out_dir}/finish-qiita_job_id.err
-#PBS -l epilogue=/home/qiita/qiita-epilogue.sh
+#SBATCH -p qiita
+#SBATCH --mail-user qiita.help@gmail.com
+#SBATCH --job-name merge-qiita_job_id
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH --time 10:00:00
+#SBATCH --mem 4g
+#SBATCH --output {out_dir}/finish-qiita_job_id.log
+#SBATCH --error {out_dir}/finish-qiita_job_id.err
 cd {out_dir}
 {environment}
 date
 hostname
-echo $PBS_JOBID
+echo $SLURM_JOBID
 finish_qp_spades http://mylink qiita_job_id {out_dir}
 date
 """
@@ -246,22 +248,23 @@ EXP_FILE_LIST = """{directory}/S22205_S104_L001_R1_001.fastq.gz\t\
 
 
 EXP_MAIN_FLASH = """#!/bin/bash
-#PBS -M qiita.help@gmail.com
-#PBS -N qiita_job_id
-#PBS -l nodes=1:ppn=5
-#PBS -l walltime=200:00:00
-#PBS -l mem=200g
-#PBS -o {out_dir}/qiita_job_id_${{PBS_ARRAYID}}.log
-#PBS -e {out_dir}/qiita_job_id_${{PBS_ARRAYID}}.err
-#PBS -t 1-2%8
-#PBS -l epilogue=/home/qiita/qiita-epilogue.sh
+#SBATCH -p qiita
+#SBATCH --mail-user qiita.help@gmail.com
+#SBATCH --job-name qiita_job_id
+#SBATCH -N 1
+#SBATCH -n 5
+#SBATCH --time 200:00:00
+#SBATCH --mem 200g
+#SBATCH --output {out_dir}/qiita_job_id_%a.log
+#SBATCH --error {out_dir}/qiita_job_id_%a.err
+#SBATCH --array 1-2%8
 cd {out_dir}
 {environment}
 OUTDIR={out_dir}/
 date
 hostname
-echo ${{PBS_JOBID}} ${{PBS_ARRAYID}}
-offset=${{PBS_ARRAYID}}
+echo ${{SLURM_JOBID}} ${{SLURM_ARRAY_TASK_ID}}
+offset=${{SLURM_ARRAY_TASK_ID}}
 args=$(head -n $offset ${{OUTDIR}}/files_to_process.txt| tail -n 1)
 FWD=$(echo -e $args | awk '{{ print $1 }}')
 REV=$(echo -e $args | awk '{{ print $2 }}')
