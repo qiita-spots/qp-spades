@@ -90,7 +90,7 @@ jobs:
           conda deactivate
 
           # installing this plugin
-          conda create -q --yes -n qp-spades python=3.6 cmake clang zlib flash spades
+          conda create -q --yes -n qp-spades python=3.6 cmake clang zlib flash spades=3.15.2
           conda activate qp-spades
 
           # making sure the installed versions haven't changed
