@@ -109,7 +109,7 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         '#SBATCH -p qiita',
         '#SBATCH --mail-user qiita.help@gmail.com',
         f'#SBATCH --job-name merge-{job_id}',
-        '#SBATCH -N 1'
+        '#SBATCH -N 1',
         '#SBATCH -n 1',
         f'#SBATCH --time {FINISH_WALLTIME}',
         f'#SBATCH --mem {FINISH_MEMORY}',
