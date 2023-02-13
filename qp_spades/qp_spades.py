@@ -5,7 +5,6 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # -----------------------------------------------------------------------------
-import pandas as pd
 from os import environ
 from os.path import join, exists
 from glob import glob
@@ -161,13 +160,9 @@ def spades(qclient, job_id, parameters, out_dir):
     qclient.update_job_step(job_id, msg)
 
     artifact_id = parameters['input']
-    artifact_info = qclient.get("/qiita_db/artifacts/%s/" % artifact_id)
-    # Get the artifact metadata
-    prep_info = qclient.get('/qiita_db/prep_template/%s/'
-                            % artifact_info['prep_information'][0])
-    df = pd.read_csv(prep_info['prep-file'], sep='\t', dtype='str',
-                     na_values=[], keep_default_na=True)
-    prep_info = df.set_index('run_prefix')['sample_name'].to_dict()
+
+    files, prep = qclient.artifact_and_preparation_files(artifact_id)
+    prep_info = prep.set_index('run_prefix')['sample_name'].to_dict()
 
     missing = []
     outfiles = []
