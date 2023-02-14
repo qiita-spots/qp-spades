@@ -9,7 +9,6 @@
 # -----------------------------------------------------------------------------
 
 import click
-import pandas as pd
 from subprocess import run, PIPE
 from os import environ
 from os.path import dirname, join, expanduser
@@ -59,13 +58,9 @@ def execute(url, job_id, output_dir):
         del parameters['input']
 
         # Get the artifact filepath information
-        artifact_info = qclient.get("/qiita_db/artifacts/%s/" % artifact_id)
-        # artifact_info['files'] returns a dict of {filetype: files} so we
-        # need to parse the actual input directory and make sure it's the same
-        # for all the files; it should _never_ be different but better to have
-        # a test for this
-        directory = {dirname(ffs) for _, fs in artifact_info['files'].items()
-                     for ffs in fs}
+        files, prep = qclient.artifact_and_preparation_files(artifact_id)
+        directory = {dirname(ffs['filepath'])
+                     for fs in files.values() for ffs in fs}
         if len(directory) != 1:
             msg = ('There is more than one input directory [%s]; please '
                    'contact qiita.help@gmail.com' % str(directory))
@@ -74,13 +69,7 @@ def execute(url, job_id, output_dir):
             directory = directory.pop()
 
         # Get the artifact metadata
-        prep_info = qclient.get('/qiita_db/prep_template/%s/'
-                                % artifact_info['prep_information'][0])
-        df = pd.read_csv(prep_info['prep-file'], sep='\t', dtype='str',
-                         na_values=[], keep_default_na=True)
-        if 'run_prefix' not in df.columns:
-            return False, None, 'Missing run_prefix column in your preparation'
-        prefix_to_name = df.set_index('run_prefix')['sample_name'].to_dict()
+        prefix_to_name = prep.set_index('run_prefix')['sample_name'].to_dict()
 
         # Getting all the files from the database
         main_fp, finish_fp = spades_to_array(

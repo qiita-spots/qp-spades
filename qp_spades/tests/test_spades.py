@@ -13,7 +13,6 @@ from shutil import rmtree, copyfile
 from pathlib import Path
 from tempfile import mkdtemp
 from json import dumps
-import pandas as pd
 from qiita_client.testing import PluginTestCase
 
 from qp_spades import plugin, plugin_details
@@ -93,14 +92,11 @@ class SpadesTests(PluginTestCase):
             'threads': 5, 'memory': 200, 'k-mers': '21,33,55,77,99,127'}
         out_dir = mkdtemp()
         self._clean_up_files.append(out_dir)
-        artifact_info = self.qclient.get(f"/qiita_db/artifacts/{self.aid}/")
-        directory = {dirname(ffs) for _, fs in artifact_info['files'].items()
-                     for ffs in fs}
+        files, prep = self.qclient.artifact_and_preparation_files(self.aid)
+        directory = {dirname(ffs['filepath'])
+                     for fs in files.values() for ffs in fs}
         directory = directory.pop()
-        prep_info = self.qclient.get(f'/qiita_db/prep_template/{self.pid}/')
-        df = pd.read_csv(prep_info['prep-file'], sep='\t', dtype='str',
-                         na_values=[], keep_default_na=True)
-        prefix_to_name = df.set_index('run_prefix')['sample_name'].to_dict()
+        prefix_to_name = prep.set_index('run_prefix')['sample_name'].to_dict()
 
         main_fp, finish_fp = spades_to_array(
             directory, out_dir, prefix_to_name, 'http://mylink',
@@ -126,7 +122,7 @@ class SpadesTests(PluginTestCase):
         params = {
             'type': 'meta', 'merging': 'flash 65%', 'input': self.aid,
             'threads': 5, 'memory': 200, 'k-mers': '21,33,55,77,99,127'}
-        prefix_to_name = df.set_index('run_prefix')['sample_name'].to_dict()
+        prefix_to_name = prep.set_index('run_prefix')['sample_name'].to_dict()
 
         main_fp, finish_fp = spades_to_array(
             directory, out_dir, prefix_to_name, 'http://mylink',
