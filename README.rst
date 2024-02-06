@@ -21,7 +21,7 @@ Qiita Client can perform secure connections against the Qiita server:
 
 .. code-block:: bash
 
-    $ export QIITA_SERVER_CERT=<QIITA_INSTALL_PATH>/qiita_core/support_files/server.crt
+    $ export QIITA_SERVER_CERT=<QIITA_INSTALL_PATH>/qiita_core/support_files/ci_rootca.crt
 
 .. |Build Status| image:: https://github.com/qiita-spots/qp-spades/actions/workflows/qiita-plugin-ci.yml/badge.svg
    :target: https://github.com/qiita-spots/qp-spades/actions/workflows/qiita-plugin-ci.yml
