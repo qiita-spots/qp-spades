@@ -43,8 +43,7 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
 
     # 2. format main comand
     command = (
-        f'spades.py --{params["type"]} -t {ppn} -m {memory} '
-        f'-k {params["k-mers"]} -o $OUTDIR/$SNAME')
+        f'spades.py --{params["type"]} -t {ppn} -o $OUTDIR/$SNAME')
     if params['merging'].startswith('flash '):
         # get read length quickly; note that we are going to assume
         # that (1) the forward and reverse are the same length and (2)
@@ -70,10 +69,10 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
             # spades
             f'{command} '
             '--merge $OUTDIR/${SNAME}.extendedFrags.fastq '
-            '-1 $OUTDIR/${SNAME}.notCombined_1.fastq '
-            '-2 $OUTDIR/${SNAME}.notCombined_2.fastq')
+            '--gemcode1-1 $OUTDIR/${SNAME}.notCombined_1.fastq '
+            '--gemcode1-2 $OUTDIR/${SNAME}.notCombined_2.fastq')
     else:
-        command = '%s -1 ${FWD} -2 ${REV}' % command
+        command = '%s --gemcode1-1 ${FWD} --gemcode1-2 ${REV}' % command
 
     # 3. create command for array submission
     marray = [

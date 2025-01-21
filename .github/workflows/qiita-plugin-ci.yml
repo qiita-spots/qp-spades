@@ -2,7 +2,7 @@
 
 on:
   push:
-    branches: [ dev ]
+    branches: [dev]
   pull_request:
 
 jobs:
@@ -90,7 +90,7 @@ jobs:
           conda deactivate
 
           # installing this plugin
-          conda create -q --yes -n qp-spades python=3.6 cmake clang zlib flash spades=3.15.2
+          conda create -q --yes -n qp-spades python=3.11 cmake clang zlib flash spades
           conda activate qp-spades
 
           # making sure the installed versions haven't changed
@@ -156,21 +156,21 @@ jobs:
 
       - uses: codecov/codecov-action@v1
         with:
-         token: ${{ secrets.CODECOV_TOKEN }}
-         file: codecov.yml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: codecov.yml
 
   lint:
     runs-on: ubuntu-latest
     steps:
-    - name: flake8
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-    - name: install dependencies
-      run: python -m pip install --upgrade pip
-    - name: Check out repository code
-      uses: actions/checkout@v2
-    - name: lint
-      run: |
-        pip install -q flake8
-        flake8 qp_spades setup.py scripts/*
+      - name: flake8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: install dependencies
+        run: python -m pip install --upgrade pip
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: lint
+        run: |
+          pip install -q flake8
+          flake8 qp_spades setup.py scripts/*
