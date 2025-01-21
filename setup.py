@@ -46,6 +46,7 @@ setup(name='qp-spades',
       scripts=glob('scripts/*'),
       extras_require={'test': ["nose >= 0.10.1", "pep8"]},
       install_requires=['click >= 3.3', 'future', 'pandas >= 0.15',
+                        'pyreadline3',
                         'qiita_client @ https://github.com/qiita-spots/'
                         'qiita_client/archive/master.zip'],
       classifiers=classifiers
