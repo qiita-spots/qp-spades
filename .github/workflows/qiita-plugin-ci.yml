@@ -61,10 +61,10 @@ jobs:
           export PGPASSWORD=postgres
 
           # Setting up main qiita conda environment
-          conda config --add channels conda-forge
-          conda create -q --yes -n qiita python=3.6 pip libgfortran numpy nginx cython redis
-          conda activate qiita
-          pip install sphinx sphinx-bootstrap-theme nose-timer codecov Click
+          # conda config --add channels conda-forge
+          # conda create -q --yes -n qiita python=3.6 pip libgfortran numpy nginx cython redis
+          # conda activate qiita
+          # pip install sphinx sphinx-bootstrap-theme nose-timer codecov Click
 
       - name: Qiita install
         shell: bash -l {0}
@@ -90,7 +90,7 @@ jobs:
           # conda deactivate
 
           # installing this plugin
-          conda create -q --yes -n qp-spades python=3.11 cmake clang zlib flash # spades=3.15.4
+          conda create -q --yes -n qp-spades python=3.11 cmake clang zlib flash bzip2 # spades=3.15.4
           conda activate qp-spades
 
           # installing cloudspades
