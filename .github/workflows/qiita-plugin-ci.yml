@@ -62,7 +62,7 @@ jobs:
 
           # Setting up main qiita conda environment
           conda config --add channels conda-forge
-          conda create -q --yes -n qiita python=3.6 pip libgfortran numpy nginx cython redis
+          conda create --quiet --yes -n qiita python=3.9 pip libgfortran numpy nginx cython redis
           conda activate qiita
           pip install sphinx sphinx-bootstrap-theme nose-timer codecov Click
 
@@ -80,7 +80,7 @@ jobs:
           conda config --add channels bioconda
 
           # installing qtp-sequencing
-          conda create -q --yes -n qtp-sequencing python=3.6 pip pigz quast
+          conda create -q --yes -n qtp-sequencing python=3.9 pip pigz quast
           conda activate qtp-sequencing
           pip --quiet install https://github.com/qiita-spots/qtp-sequencing/archive/master.zip
           export QIITA_SERVER_CERT=`pwd`/qiita-dev/qiita_core/support_files/ci_rootca.crt
