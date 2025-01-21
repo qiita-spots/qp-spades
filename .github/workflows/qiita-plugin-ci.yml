@@ -94,14 +94,14 @@ jobs:
           conda activate qp-spades
 
           # installing cloudspades
+          sudo apt-get update
+          sudo apt-get install -y libbz2-dev
           sudo apt install gcc-10 g++-10
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
           sudo update-alternatives --set gcc /usr/bin/gcc-10
 
-          apt-get update && apt-get install -y libbz2-dev
-
-          wget https://github.com/ablab/spades/archive/refs/tags/cloudspades-0.1.tar.gz
-          tar zxvf cloudspades-0.1.tar.gz
+          wget -q https://github.com/ablab/spades/archive/refs/tags/cloudspades-0.1.tar.gz
+          tar -zxf cloudspades-0.1.tar.gz
           cd spades-cloudspades-0.1/assembler/
           sh spades_compile.sh
           bin/spades.py --test
