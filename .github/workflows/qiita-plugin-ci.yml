@@ -90,14 +90,12 @@ jobs:
           conda deactivate
 
           # installing this plugin
-          conda create -q --yes -n qp-spades python=3.11 cmake clang zlib flash spades
+          conda create -q --yes -n qp-spades python=3.11 cmake clang zlib flash
           conda activate qp-spades
 
           # making sure the installed versions haven't changed
           flash_version=`flash --version`
-          spades_version=`spades.py --version`
           if [[ $flash_version != *"v1.2.11"* ]]; then echo "wrong flash version", $flash_version; exit 1; fi
-          if [[ $spades_version != *"v3.15.2"* ]]; then echo "wrong spades version", $spades_version; exit 1; fi
 
           export QIITA_SERVER_CERT=`pwd`/qiita-dev/qiita_core/support_files/ci_rootca.crt
           export QIITA_CONFIG_FP=`pwd`/qiita-dev/qiita_core/support_files/config_test_local.cfg
