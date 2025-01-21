@@ -145,7 +145,7 @@ jobs:
           export QIITA_CONFIG_FP=`pwd`/qiita-dev/qiita_core/support_files/config_test_local.cfg
           export ENVIRONMENT="source /home/runner/.profile; conda activate qp-spades"
 
-          nosetests $COVER_PACKAGE --with-doctest --with-coverage -vv --cover-package=$COVER_PACKAGE
+          nosetests --with-doctest --with-coverage -v --cover-package=qp_spades
 
           # killing the qiita server to run the next commands
           QIITA_PID=`cat /tmp/supervisord.pid`
