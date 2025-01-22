@@ -64,7 +64,7 @@ jobs:
           conda config --add channels conda-forge
           conda create --quiet --yes -n qiita python=3.9 pip libgfortran numpy nginx cython redis
           conda activate qiita
-          pip install sphinx sphinx-bootstrap-theme nose-timer codecov Click
+          pip install sphinx sphinx-bootstrap-theme pytest codecov Click
 
       - name: Qiita install
         shell: bash -l {0}
@@ -145,7 +145,7 @@ jobs:
           export QIITA_CONFIG_FP=`pwd`/qiita-dev/qiita_core/support_files/config_test_local.cfg
           export ENVIRONMENT="source /home/runner/.profile; conda activate qp-spades"
 
-          nosetests --with-doctest --with-coverage -v --cover-package=qp_spades
+          pytest $PWD
 
           # killing the qiita server to run the next commands
           QIITA_PID=`cat /tmp/supervisord.pid`
