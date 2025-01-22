@@ -44,9 +44,8 @@ setup(name='qp-spades',
         'support_files/*',
         'support_files/raw_data/*']},
       scripts=glob('scripts/*'),
-      extras_require={'test': ["nose >= 0.10.1", "pep8"]},
-      install_requires=['click >= 3.3', 'future', 'pandas >= 0.15',
-                        'pyreadline3',
+      extras_require={'test': ["pep8"]},
+      install_requires=['click >= 3.3', 'future', 'pandas >= 0.15', 'nose',
                         'qiita_client @ https://github.com/qiita-spots/'
                         'qiita_client/archive/master.zip'],
       classifiers=classifiers
