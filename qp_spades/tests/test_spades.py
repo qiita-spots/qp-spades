@@ -221,7 +221,7 @@ date
 EXP_FINISH = """#!/bin/bash
 #SBATCH -p qiita
 #SBATCH --mail-user qiita.help@gmail.com
-#SBATCH --job-name merge-qiita_job_id
+#SBATCH --job-name finish-qiita_job_id
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH --time 10:00:00

@@ -10,9 +10,7 @@ from qiita_client import QiitaPlugin, QiitaCommand
 from .qp_spades import spades
 
 
-THREADS = "16"
-MEMORY = "200"
-KMERS = "21,33,55,77,99,127"
+THREADS = "12"
 
 plugin_details = {'name': 'qp-spades',
                   'version': '2025.02',

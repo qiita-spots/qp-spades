@@ -16,6 +16,7 @@ from qiita_client.util import system_call
 # resources per job
 WALLTIME = '200:00:00'
 MAX_RUNNING = 8
+MEMORY = '128g'
 FINISH_WALLTIME = '10:00:00'
 FINISH_MEMORY = '4g'
 
@@ -24,7 +25,6 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
                     job_id, params):
     environment = environ["ENVIRONMENT"]
     ppn = params["threads"]
-    memory = params["memory"]
 
     # 1. create file list
     num_samples = len(prefix_to_name)
@@ -83,7 +83,7 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         '#SBATCH -N 1',
         f'#SBATCH -n {ppn}',
         f'#SBATCH --time {WALLTIME}',
-        f'#SBATCH --mem {memory}g',
+        f'#SBATCH --mem {MEMORY}',
         f'#SBATCH --output {output_dir}/{job_id}_%a.log',
         f'#SBATCH --error {output_dir}/{job_id}_%a.err',
         f'#SBATCH --array 1-{num_samples}%{MAX_RUNNING}',
