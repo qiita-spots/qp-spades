@@ -43,7 +43,8 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
 
     # 2. format main comand
     command = (
-        f'spades.py --{params["type"]} -t {ppn} -o $OUTDIR/$SNAME')
+        f'spades.py --{params["type"]} -m {MEMORY.replace("g", "")} '
+        f'-t {ppn} -o $OUTDIR/$SNAME')
     if params['merging'].startswith('flash '):
         # get read length quickly; note that we are going to assume
         # that (1) the forward and reverse are the same length and (2)
@@ -106,7 +107,7 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         '#!/bin/bash',
         '#SBATCH -p qiita',
         '#SBATCH --mail-user qiita.help@gmail.com',
-        f'#SBATCH --job-name merge-{job_id}',
+        f'#SBATCH --job-name finish-{job_id}',
         '#SBATCH -N 1',
         '#SBATCH -n 1',
         f'#SBATCH --time {FINISH_WALLTIME}',
@@ -163,23 +164,15 @@ def spades(qclient, job_id, parameters, out_dir):
     files, prep = qclient.artifact_and_preparation_files(artifact_id)
     prep_info = prep.set_index('run_prefix')['sample_name'].to_dict()
 
-    missing = []
     outfiles = []
     for run_prefix, sname in prep_info.items():
         scaffold = join(out_dir, run_prefix, 'scaffolds.fasta')
+        new_scaffold = join(out_dir, run_prefix, f'{run_prefix}.fasta')
         if exists(scaffold):
-            new_scaffold = join(out_dir, run_prefix, f'{run_prefix}.fasta')
             run(['mv', scaffold, new_scaffold], stdout=PIPE)
-            outfiles.append((new_scaffold, 'preprocessed_fasta'))
         else:
-            missing.append(f'{sname} [{run_prefix}]')
-
-    if missing:
-        error_msg = (
-            'There was no scaffolds.fasta for samples: %s. Contact: '
-            'qiita.help@gmail.com and add this job id: %s' % (
-                ', '.join(missing), job_id))
-        return False, None, error_msg
+            run(['touch', new_scaffold], stdout=PIPE)
+        outfiles.append((new_scaffold, 'preprocessed_fasta'))
 
     # Step 4 generating artifacts
     msg = "Step 4 of 4: Generating new artifact"

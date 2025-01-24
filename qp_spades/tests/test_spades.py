@@ -198,7 +198,7 @@ EXP_MAIN = """#!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 5
 #SBATCH --time 200:00:00
-#SBATCH --mem 200g
+#SBATCH --mem 128g
 #SBATCH --output {out_dir}/qiita_job_id_%a.log
 #SBATCH --error {out_dir}/qiita_job_id_%a.err
 #SBATCH --array 1-2%8
@@ -213,8 +213,8 @@ args=$(head -n $offset ${{OUTDIR}}/files_to_process.txt| tail -n 1)
 FWD=$(echo -e $args | awk '{{ print $1 }}')
 REV=$(echo -e $args | awk '{{ print $2 }}')
 SNAME=$(echo -e $args | awk '{{ print $3 }}')
-spades.py --{type} -t {threads} -m {memory} -k {k-mers} -o $OUTDIR/$SNAME \
--1 ${{FWD}} -2 ${{REV}}
+spades.py --{type} -m 128 -t {ppn} -o $OUTDIR/$SNAME \
+--gemcode1-1 ${{FWD}} --gemcode1-2 ${{REV}}
 date
 """
 
@@ -250,7 +250,7 @@ EXP_MAIN_FLASH = """#!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 5
 #SBATCH --time 200:00:00
-#SBATCH --mem 200g
+#SBATCH --mem 128g
 #SBATCH --output {out_dir}/qiita_job_id_%a.log
 #SBATCH --error {out_dir}/qiita_job_id_%a.err
 #SBATCH --array 1-2%8
@@ -267,11 +267,9 @@ REV=$(echo -e $args | awk '{{ print $2 }}')
 SNAME=$(echo -e $args | awk '{{ print $3 }}')
 flash --threads {threads} --max-overlap=97 --output-directory $OUTDIR \
 --output-prefix="$SNAME" ${{FWD}} ${{REV}} --max-mismatch-density=0.1 \
-> $OUTDIR/${{SNAME}}.flash.log 2>&1 && spades.py --{type} -t {threads} \
--m {memory} -k {k-mers} -o $OUTDIR/$SNAME \
---merge $OUTDIR/${{SNAME}}.extendedFrags.fastq \
--1 $OUTDIR/${{SNAME}}.notCombined_1.fastq \
--2 $OUTDIR/${{SNAME}}.notCombined_2.fastq
+> $OUTDIR/${{SNAME}}.flash.log 2>&1 && spades.py --{type} -m 128 -t \
+{ppn} -o $OUTDIR/$SNAME --merge $OUTDIR/${{SNAME}}.extendedFrags.fastq \
+--gemcode1-1 ${{FWD}} --gemcode1-2 ${{REV}}
 date
 """
 
