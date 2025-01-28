@@ -121,7 +121,7 @@ class SpadesTests(PluginTestCase):
         # can reuse
         params = {
             'type': 'meta', 'merging': 'flash 65%', 'input': self.aid,
-            'threads': 5, 'memory': 200, 'k-mers': '21,33,55,77,99,127'}
+            'threads': 5}
         prefix_to_name = prep.set_index('run_prefix')['sample_name'].to_dict()
 
         main_fp, finish_fp = spades_to_array(
@@ -159,7 +159,7 @@ class SpadesTests(PluginTestCase):
         # testing error
         params = {
             'type': 'meta', 'merging': 'flash 65%', 'input': self.aid,
-            'threads': 5, 'memory': 200, 'k-mers': '21,33,55,77,99,127'}
+            'threads': 5}
         self.data['command'] = dumps(
             [plugin_details['name'], plugin_details['version'], 'spades'])
         self.data['parameters'] = dumps(params)
