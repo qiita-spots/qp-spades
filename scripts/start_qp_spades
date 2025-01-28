@@ -29,7 +29,7 @@ def _client_connect(url):
     conf_fp = join(conf_dir, f'{name}_{version}.conf')
 
     with open(conf_fp, 'r') as conf_file:
-        config.readfp(conf_file)
+        config.read_file(conf_file)
     qclient = QiitaClient(url, config.get('oauth2', 'CLIENT_ID'),
                           config.get('oauth2', 'CLIENT_SECRET'),
                           config.get('oauth2', 'SERVER_CERT'))

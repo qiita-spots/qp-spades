@@ -89,7 +89,7 @@ class SpadesTests(PluginTestCase):
         # testing isolate/no-merge
         params = {
             'type': 'isolate', 'merging': 'no merge', 'input': self.aid,
-            'threads': 5, 'memory': 200, 'k-mers': '21,33,55,77,99,127'}
+            'threads': 5}
         out_dir = mkdtemp()
         self._clean_up_files.append(out_dir)
         files, prep = self.qclient.artifact_and_preparation_files(self.aid)
