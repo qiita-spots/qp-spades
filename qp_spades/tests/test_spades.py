@@ -260,8 +260,8 @@ flash --threads {threads} --max-overlap=97 --output-directory $OUTDIR \
 --output-prefix="$SNAME" ${{FWD}} ${{REV}} --max-mismatch-density=0.1 \
 > $OUTDIR/${{SNAME}}.flash.log 2>&1 && spades.py --{type} -m 128 -t \
 {threads} -o $OUTDIR/$SNAME --merge $OUTDIR/${{SNAME}}.extendedFrags.fastq \
---gemcode1-1 $OUTDIR/${SNAME}.notCombined_1.fastq \
---gemcode1-2 $OUTDIR/${SNAME}.notCombined_2.fastq
+--gemcode1-1 $OUTDIR/${{SNAME}}.notCombined_1.fastq \
+--gemcode1-2 $OUTDIR/${{SNAME}}.notCombined_2.fastq
 date
 """
 
