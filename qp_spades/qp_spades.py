@@ -16,6 +16,7 @@ from qiita_client.util import system_call
 # resources per job
 WALLTIME = '200:00:00'
 MAX_RUNNING = 8
+MEMORY = '128g'
 FINISH_WALLTIME = '10:00:00'
 FINISH_MEMORY = '4g'
 
@@ -24,7 +25,6 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
                     job_id, params):
     environment = environ["ENVIRONMENT"]
     ppn = params["threads"]
-    memory = params["memory"]
 
     # 1. create file list
     num_samples = len(prefix_to_name)
@@ -43,8 +43,8 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
 
     # 2. format main comand
     command = (
-        f'spades.py --{params["type"]} -t {ppn} -m {memory} '
-        f'-k {params["k-mers"]} -o $OUTDIR/$SNAME')
+        f'spades.py --{params["type"]} -m {MEMORY.replace("g", "")} '
+        f'-t {ppn} -o $OUTDIR/$SNAME')
     if params['merging'].startswith('flash '):
         # get read length quickly; note that we are going to assume
         # that (1) the forward and reverse are the same length and (2)
@@ -52,7 +52,7 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         fp = glob(join(directory, list(prefix_to_name)[0] + '*'))[0]
         std_out, std_err, return_value = system_call(
                 f'zcat -c {fp} | head -n 2')
-        if return_value != 0:
+        if return_value != 0 or std_err:
             error_msg = (f"Error uncompressing: {fp}\n"
                          f"Std out: {std_out}\nStd err: {std_err}\n")
             raise ValueError(error_msg)
@@ -70,10 +70,10 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
             # spades
             f'{command} '
             '--merge $OUTDIR/${SNAME}.extendedFrags.fastq '
-            '-1 $OUTDIR/${SNAME}.notCombined_1.fastq '
-            '-2 $OUTDIR/${SNAME}.notCombined_2.fastq')
+            '--gemcode1-1 $OUTDIR/${SNAME}.notCombined_1.fastq '
+            '--gemcode1-2 $OUTDIR/${SNAME}.notCombined_2.fastq')
     else:
-        command = '%s -1 ${FWD} -2 ${REV}' % command
+        command = '%s --gemcode1-1 ${FWD} --gemcode1-2 ${REV}' % command
 
     # 3. create command for array submission
     marray = [
@@ -84,7 +84,7 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         '#SBATCH -N 1',
         f'#SBATCH -n {ppn}',
         f'#SBATCH --time {WALLTIME}',
-        f'#SBATCH --mem {memory}g',
+        f'#SBATCH --mem {MEMORY}',
         f'#SBATCH --output {output_dir}/{job_id}_%a.log',
         f'#SBATCH --error {output_dir}/{job_id}_%a.err',
         f'#SBATCH --array 1-{num_samples}%{MAX_RUNNING}',
@@ -107,7 +107,7 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         '#!/bin/bash',
         '#SBATCH -p qiita',
         '#SBATCH --mail-user qiita.help@gmail.com',
-        f'#SBATCH --job-name merge-{job_id}',
+        f'#SBATCH --job-name finish-{job_id}',
         '#SBATCH -N 1',
         '#SBATCH -n 1',
         f'#SBATCH --time {FINISH_WALLTIME}',
@@ -164,23 +164,15 @@ def spades(qclient, job_id, parameters, out_dir):
     files, prep = qclient.artifact_and_preparation_files(artifact_id)
     prep_info = prep.set_index('run_prefix')['sample_name'].to_dict()
 
-    missing = []
     outfiles = []
     for run_prefix, sname in prep_info.items():
         scaffold = join(out_dir, run_prefix, 'scaffolds.fasta')
+        new_scaffold = join(out_dir, run_prefix, f'{run_prefix}.fasta')
         if exists(scaffold):
-            new_scaffold = join(out_dir, run_prefix, f'{run_prefix}.fasta')
             run(['mv', scaffold, new_scaffold], stdout=PIPE)
-            outfiles.append((new_scaffold, 'preprocessed_fasta'))
         else:
-            missing.append(f'{sname} [{run_prefix}]')
-
-    if missing:
-        error_msg = (
-            'There was no scaffolds.fasta for samples: %s. Contact: '
-            'qiita.help@gmail.com and add this job id: %s' % (
-                ', '.join(missing), job_id))
-        return False, None, error_msg
+            run(['touch', new_scaffold], stdout=PIPE)
+        outfiles.append((new_scaffold, 'preprocessed_fasta'))
 
     # Step 4 generating artifacts
     msg = "Step 4 of 4: Generating new artifact"

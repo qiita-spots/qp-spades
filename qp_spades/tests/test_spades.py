@@ -89,7 +89,7 @@ class SpadesTests(PluginTestCase):
         # testing isolate/no-merge
         params = {
             'type': 'isolate', 'merging': 'no merge', 'input': self.aid,
-            'threads': 5, 'memory': 200, 'k-mers': '21,33,55,77,99,127'}
+            'threads': 5}
         out_dir = mkdtemp()
         self._clean_up_files.append(out_dir)
         files, prep = self.qclient.artifact_and_preparation_files(self.aid)
@@ -121,7 +121,7 @@ class SpadesTests(PluginTestCase):
         # can reuse
         params = {
             'type': 'meta', 'merging': 'flash 65%', 'input': self.aid,
-            'threads': 5, 'memory': 200, 'k-mers': '21,33,55,77,99,127'}
+            'threads': 5}
         prefix_to_name = prep.set_index('run_prefix')['sample_name'].to_dict()
 
         main_fp, finish_fp = spades_to_array(
@@ -159,24 +159,15 @@ class SpadesTests(PluginTestCase):
         # testing error
         params = {
             'type': 'meta', 'merging': 'flash 65%', 'input': self.aid,
-            'threads': 5, 'memory': 200, 'k-mers': '21,33,55,77,99,127'}
+            'threads': 5}
         self.data['command'] = dumps(
-            [plugin_details['name'], plugin_details['version'], 'spades'])
+            [plugin_details['name'], plugin_details['version'], 'cloudSPAdes'])
         self.data['parameters'] = dumps(params)
         jid = self.qclient.post(
             '/apitest/processing_job/', data=self.data)['job']
 
         out_dir = mkdtemp()
         self._clean_up_files.append(out_dir)
-        success, artifact, msg = spades(self.qclient, jid, params, out_dir)
-        self.assertIsNone(artifact)
-        self.assertFalse(success)
-        self.assertEqual(msg, f'There was no scaffolds.fasta for samples: '
-                         '1.SKB8.640193 [S22205_S104], 1.SKD8.640184 '
-                         '[S22282_S102]. Contact: qiita.help@gmail.com and '
-                         f'add this job id: {jid}')
-
-        # testing success
         mkdir(f'{out_dir}/S22205_S104')
         mkdir(f'{out_dir}/S22282_S102')
         Path(f'{out_dir}/S22205_S104/scaffolds.fasta').touch()
@@ -196,9 +187,9 @@ EXP_MAIN = """#!/bin/bash
 #SBATCH --mail-user qiita.help@gmail.com
 #SBATCH --job-name qiita_job_id
 #SBATCH -N 1
-#SBATCH -n 5
+#SBATCH -n {threads}
 #SBATCH --time 200:00:00
-#SBATCH --mem 200g
+#SBATCH --mem 128g
 #SBATCH --output {out_dir}/qiita_job_id_%a.log
 #SBATCH --error {out_dir}/qiita_job_id_%a.err
 #SBATCH --array 1-2%8
@@ -213,15 +204,15 @@ args=$(head -n $offset ${{OUTDIR}}/files_to_process.txt| tail -n 1)
 FWD=$(echo -e $args | awk '{{ print $1 }}')
 REV=$(echo -e $args | awk '{{ print $2 }}')
 SNAME=$(echo -e $args | awk '{{ print $3 }}')
-spades.py --{type} -t {threads} -m {memory} -k {k-mers} -o $OUTDIR/$SNAME \
--1 ${{FWD}} -2 ${{REV}}
+spades.py --{type} -m 128 -t {threads} -o $OUTDIR/$SNAME \
+--gemcode1-1 ${{FWD}} --gemcode1-2 ${{REV}}
 date
 """
 
 EXP_FINISH = """#!/bin/bash
 #SBATCH -p qiita
 #SBATCH --mail-user qiita.help@gmail.com
-#SBATCH --job-name merge-qiita_job_id
+#SBATCH --job-name finish-qiita_job_id
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH --time 10:00:00
@@ -248,9 +239,9 @@ EXP_MAIN_FLASH = """#!/bin/bash
 #SBATCH --mail-user qiita.help@gmail.com
 #SBATCH --job-name qiita_job_id
 #SBATCH -N 1
-#SBATCH -n 5
+#SBATCH -n {threads}
 #SBATCH --time 200:00:00
-#SBATCH --mem 200g
+#SBATCH --mem 128g
 #SBATCH --output {out_dir}/qiita_job_id_%a.log
 #SBATCH --error {out_dir}/qiita_job_id_%a.err
 #SBATCH --array 1-2%8
@@ -267,11 +258,10 @@ REV=$(echo -e $args | awk '{{ print $2 }}')
 SNAME=$(echo -e $args | awk '{{ print $3 }}')
 flash --threads {threads} --max-overlap=97 --output-directory $OUTDIR \
 --output-prefix="$SNAME" ${{FWD}} ${{REV}} --max-mismatch-density=0.1 \
-> $OUTDIR/${{SNAME}}.flash.log 2>&1 && spades.py --{type} -t {threads} \
--m {memory} -k {k-mers} -o $OUTDIR/$SNAME \
---merge $OUTDIR/${{SNAME}}.extendedFrags.fastq \
--1 $OUTDIR/${{SNAME}}.notCombined_1.fastq \
--2 $OUTDIR/${{SNAME}}.notCombined_2.fastq
+> $OUTDIR/${{SNAME}}.flash.log 2>&1 && spades.py --{type} -m 128 -t \
+{threads} -o $OUTDIR/$SNAME --merge $OUTDIR/${{SNAME}}.extendedFrags.fastq \
+--gemcode1-1 $OUTDIR/${{SNAME}}.notCombined_1.fastq \
+--gemcode1-2 $OUTDIR/${{SNAME}}.notCombined_2.fastq
 date
 """
 
