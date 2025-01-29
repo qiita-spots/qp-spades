@@ -89,7 +89,7 @@ class SpadesTests(PluginTestCase):
         # testing isolate/no-merge
         params = {
             'type': 'isolate', 'merging': 'no merge', 'input': self.aid,
-            'ppn': 5, 'threads': 5}
+            'threads': 5}
         out_dir = mkdtemp()
         self._clean_up_files.append(out_dir)
         files, prep = self.qclient.artifact_and_preparation_files(self.aid)
@@ -204,7 +204,7 @@ args=$(head -n $offset ${{OUTDIR}}/files_to_process.txt| tail -n 1)
 FWD=$(echo -e $args | awk '{{ print $1 }}')
 REV=$(echo -e $args | awk '{{ print $2 }}')
 SNAME=$(echo -e $args | awk '{{ print $3 }}')
-spades.py --{type} -m 128 -t {ppn} -o $OUTDIR/$SNAME \
+spades.py --{type} -m 128 -t 5 -o $OUTDIR/$SNAME \
 --gemcode1-1 ${{FWD}} --gemcode1-2 ${{REV}}
 date
 """
@@ -259,7 +259,7 @@ SNAME=$(echo -e $args | awk '{{ print $3 }}')
 flash --threads {threads} --max-overlap=97 --output-directory $OUTDIR \
 --output-prefix="$SNAME" ${{FWD}} ${{REV}} --max-mismatch-density=0.1 \
 > $OUTDIR/${{SNAME}}.flash.log 2>&1 && spades.py --{type} -m 128 -t \
-{ppn} -o $OUTDIR/$SNAME --merge $OUTDIR/${{SNAME}}.extendedFrags.fastq \
+5 -o $OUTDIR/$SNAME --merge $OUTDIR/${{SNAME}}.extendedFrags.fastq \
 --gemcode1-1 ${{FWD}} --gemcode1-2 ${{REV}}
 date
 """
