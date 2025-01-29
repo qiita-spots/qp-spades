@@ -172,6 +172,7 @@ class SpadesTests(PluginTestCase):
         mkdir(f'{out_dir}/S22282_S102')
         Path(f'{out_dir}/S22205_S104/scaffolds.fasta').touch()
         Path(f'{out_dir}/S22282_S102/scaffolds.fasta').touch()
+        success, ainfo, msg = spades(self.qclient, jid, params, out_dir)
         self.assertTrue(success)
         self.assertEqual(1, len(ainfo))
         self.assertEqual(ainfo[0].files,
