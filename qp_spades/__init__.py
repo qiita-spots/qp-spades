@@ -35,7 +35,7 @@ default_params = {
 }
 
 spades_cmd = QiitaCommand(
-    "spades", "Assembly via spades", spades,
+    "cloudSPAdes", "Assembly via cloudSPAdes", spades,
     req_params, opt_params, outputs, default_params)
 
 plugin.register_command(spades_cmd)

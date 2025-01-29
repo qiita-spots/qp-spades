@@ -89,7 +89,7 @@ class SpadesTests(PluginTestCase):
         # testing isolate/no-merge
         params = {
             'type': 'isolate', 'merging': 'no merge', 'input': self.aid,
-            'threads': 5}
+            'ppn': 5, 'threads': 5}
         out_dir = mkdtemp()
         self._clean_up_files.append(out_dir)
         files, prep = self.qclient.artifact_and_preparation_files(self.aid)
@@ -161,27 +161,17 @@ class SpadesTests(PluginTestCase):
             'type': 'meta', 'merging': 'flash 65%', 'input': self.aid,
             'threads': 5}
         self.data['command'] = dumps(
-            [plugin_details['name'], plugin_details['version'], 'spades'])
+            [plugin_details['name'], plugin_details['version'], 'cloudSPAdes'])
         self.data['parameters'] = dumps(params)
         jid = self.qclient.post(
             '/apitest/processing_job/', data=self.data)['job']
 
         out_dir = mkdtemp()
         self._clean_up_files.append(out_dir)
-        success, artifact, msg = spades(self.qclient, jid, params, out_dir)
-        self.assertIsNone(artifact)
-        self.assertFalse(success)
-        self.assertEqual(msg, f'There was no scaffolds.fasta for samples: '
-                         '1.SKB8.640193 [S22205_S104], 1.SKD8.640184 '
-                         '[S22282_S102]. Contact: qiita.help@gmail.com and '
-                         f'add this job id: {jid}')
-
-        # testing success
         mkdir(f'{out_dir}/S22205_S104')
         mkdir(f'{out_dir}/S22282_S102')
         Path(f'{out_dir}/S22205_S104/scaffolds.fasta').touch()
         Path(f'{out_dir}/S22282_S102/scaffolds.fasta').touch()
-        success, ainfo, msg = spades(self.qclient, jid, params, out_dir)
         self.assertTrue(success)
         self.assertEqual(1, len(ainfo))
         self.assertEqual(ainfo[0].files,

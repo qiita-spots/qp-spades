@@ -52,7 +52,7 @@ def spades_to_array(directory, output_dir, prefix_to_name, url,
         fp = glob(join(directory, list(prefix_to_name)[0] + '*'))[0]
         std_out, std_err, return_value = system_call(
                 f'zcat -c {fp} | head -n 2')
-        if return_value != 0:
+        if return_value != 0 or std_err:
             error_msg = (f"Error uncompressing: {fp}\n"
                          f"Std out: {std_out}\nStd err: {std_err}\n")
             raise ValueError(error_msg)
