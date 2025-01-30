@@ -167,7 +167,7 @@ def spades(qclient, job_id, parameters, out_dir):
     outfiles = []
     for run_prefix, sname in prep_info.items():
         scaffold = join(out_dir, run_prefix, 'scaffolds.fasta')
-        new_scaffold = join(out_dir, run_prefix, f'{run_prefix}.fasta')
+        new_scaffold = join(out_dir, run_prefix, f'{sname}.fasta')
         if exists(scaffold):
             run(['mv', scaffold, new_scaffold], stdout=PIPE)
         else:
