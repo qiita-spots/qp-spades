@@ -176,9 +176,9 @@ class SpadesTests(PluginTestCase):
         self.assertTrue(success)
         self.assertEqual(1, len(ainfo))
         self.assertEqual(ainfo[0].files,
-                         [(f'{out_dir}/S22205_S104/S22205_S104.fasta',
+                         [(f'{out_dir}/S22205_S104/1.SKB8.640193.fasta',
                            'preprocessed_fasta'),
-                          (f'{out_dir}/S22282_S102/S22282_S102.fasta',
+                          (f'{out_dir}/S22282_S102/1.SKD8.640184.fasta',
                            'preprocessed_fasta')])
 
 
